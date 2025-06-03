@@ -1,0 +1,23 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "OpenAI Realtime Assistant",
+        "description": "Configure OpenAI Realtime Assistant for voice control",
+        "data": {
+          "api_key": "API Key",
+          "model": "Model",
+          "voice": "Voice"
+        }
+      }
+    },
+    "error": {
+      "invalid_api_key": "Invalid API key",
+      "cannot_connect": "Failed to connect to OpenAI",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "Integration is already configured"
+    }
+  }
+}

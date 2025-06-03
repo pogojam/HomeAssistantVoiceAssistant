@@ -95,6 +95,21 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up OpenAI Realtime Assistant from a config entry."""
+    # Store config entry data
+    hass.data.setdefault(DOMAIN, {})
+    
+    # Create client from config entry
+    hass.data[DOMAIN][entry.entry_id] = {
+        "config": entry.data,
+        "client": OpenAIRealtimeClient(
+            api_key=entry.data[CONF_API_KEY],
+            model=entry.data.get(CONF_MODEL, DEFAULT_MODEL),
+            voice=entry.data.get(CONF_VOICE, DEFAULT_VOICE),
+            temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+            system_prompt=entry.data.get(CONF_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT),
+        ),
+    }
+    
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     return True
 

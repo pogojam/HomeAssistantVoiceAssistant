@@ -2,11 +2,12 @@
   "domain": "openai_realtime_assistant",
   "name": "OpenAI Realtime Assistant",
   "version": "1.0.0",
-  "documentation": "https://github.com/yourusername/openai-realtime-assistant",
-  "issue_tracker": "https://github.com/yourusername/openai-realtime-assistant/issues",
+  "documentation": "https://github.com/pogojam/HomeAssistantVoiceAssistant",
+  "issue_tracker": "https://github.com/pogojam/HomeAssistantVoiceAssistant/issues",
   "dependencies": ["conversation", "stt", "tts"],
-  "codeowners": ["@yourusername"],
+  "codeowners": ["@pogojam"],
   "requirements": ["websockets==12.0", "aiohttp==3.9.1", "numpy==1.24.3"],
   "integration_type": "hub",
-  "iot_class": "cloud_push"
+  "iot_class": "cloud_push",
+  "config_flow": true
 }
