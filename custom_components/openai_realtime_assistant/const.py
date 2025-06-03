@@ -1,6 +1,7 @@
 """Constants for OpenAI Realtime Assistant."""
 
 DOMAIN = "openai_realtime_assistant"
+VERSION = "1.0.0"
 
 # Configuration constants
 CONF_MODEL = "model"

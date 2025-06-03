@@ -8,7 +8,7 @@ _LOGGER.debug("OpenAI Realtime Assistant module is being imported")
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY
+from homeassistant.const import CONF_API_KEY, Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 
@@ -45,7 +45,7 @@ CONFIG_SCHEMA = vol.Schema(
     extra=vol.ALLOW_EXTRA,
 )
 
-PLATFORMS = ["stt", "tts", "conversation"]
+PLATFORMS = [Platform.STT, Platform.TTS, Platform.CONVERSATION]
 
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:

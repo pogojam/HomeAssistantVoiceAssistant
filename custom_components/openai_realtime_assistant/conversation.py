@@ -18,14 +18,41 @@ from .home_assistant_tools import HomeAssistantTools
 _LOGGER = logging.getLogger(__name__)
 
 
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+    """Set up OpenAI Realtime conversation from YAML."""
+    _LOGGER.debug("Setting up OpenAI Realtime conversation from YAML")
+    
+    # Get the client and config from hass.data
+    if DOMAIN not in hass.data:
+        _LOGGER.error("OpenAI Realtime Assistant not properly initialized")
+        return False
+        
+    client = hass.data[DOMAIN]["client"]
+    agent = OpenAIRealtimeAgent(hass, client, hass.data[DOMAIN]["config"])
+    
+    # Register the agent for YAML config
+    # Create a fake config entry for YAML-based setup
+    from homeassistant.helpers import entity_registry
+    er = entity_registry.async_get(hass)
+    
+    # Store the agent in hass.data for access
+    hass.data[DOMAIN]["agent"] = agent
+    
+    # Register as the default conversation agent
+    conversation.async_set_agent(hass, None, agent)
+    
+    return True
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up OpenAI Realtime conversation from a config entry."""
-    client = hass.data[DOMAIN]["client"]
-    config = hass.data[DOMAIN]["config"]
+    entry_data = hass.data[DOMAIN][config_entry.entry_id]
+    client = entry_data["client"]
+    config = entry_data["config"]
     agent = OpenAIRealtimeAgent(hass, client, config)
     conversation.async_set_agent(hass, config_entry, agent)
 
