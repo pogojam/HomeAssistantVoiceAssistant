@@ -11,7 +11,7 @@ A custom Home Assistant integration that replaces the default voice assistant pi
 1. Open HACS in your Home Assistant instance
 2. Click on "Integrations"
 3. Click the three dots in the top right corner and select "Custom repositories"
-4. Add this repository URL: `https://github.com/yourusername/HomeAssistantAI`
+4. Add this repository URL: `https://github.com/pogojam/HomeAssistantVoiceAssistant`
 5. Select "Integration" as the category
 6. Click "Add"
 7. Find "OpenAI Realtime Assistant" in the integration list
