@@ -6,7 +6,7 @@
   "issue_tracker": "https://github.com/pogojam/HomeAssistantVoiceAssistant/issues",
   "dependencies": ["conversation", "stt", "tts"],
   "codeowners": ["@pogojam"],
-  "requirements": ["websockets==12.0", "aiohttp==3.9.1", "numpy==1.24.3"],
+  "requirements": [],
   "integration_type": "hub",
   "iot_class": "cloud_push",
   "config_flow": true
