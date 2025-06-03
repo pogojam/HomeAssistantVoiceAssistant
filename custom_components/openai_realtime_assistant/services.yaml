@@ -1,0 +1,27 @@
+start_conversation:
+  name: Start Conversation
+  description: Start a new conversation session with OpenAI Realtime API
+  fields: {}
+
+stop_conversation:
+  name: Stop Conversation
+  description: Stop the current conversation session
+  fields: {}
+
+clear_context:
+  name: Clear Context
+  description: Clear the conversation context
+  fields: {}
+
+set_system_prompt:
+  name: Set System Prompt
+  description: Update the system prompt for the assistant
+  fields:
+    prompt:
+      name: Prompt
+      description: The new system prompt
+      required: true
+      example: "You are a helpful home assistant that can control smart devices."
+      selector:
+        text:
+          multiline: true

@@ -1,0 +1,25 @@
+# Example configuration for OpenAI Realtime Assistant
+
+# Basic configuration (minimum required)
+openai_realtime_assistant:
+  api_key: "sk-your-api-key-here"
+
+# Full configuration with all options
+openai_realtime_assistant:
+  api_key: "sk-your-api-key-here"
+  model: "gpt-4o-realtime-preview"
+  voice: "alloy"  # Options: alloy, echo, fable, onyx, nova, shimmer
+  temperature: 0.7
+  system_prompt: |
+    You are a helpful home assistant named HomeAI. You can control smart home devices 
+    and answer questions. Be concise but friendly in your responses. When controlling 
+    devices, confirm the action you're taking.
+  enable_home_control: true
+  conversation_timeout: 30
+
+# Voice Assistant configuration
+# Configure your voice satellite to use this assistant
+voice_assistant:
+  - platform: esphome
+    device_id: your-voice-satellite
+    assistant: openai_realtime_assistant
