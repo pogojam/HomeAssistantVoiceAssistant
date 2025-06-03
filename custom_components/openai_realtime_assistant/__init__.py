@@ -2,6 +2,10 @@
 import logging
 from typing import Any
 
+# Set up logger at module level to debug loading
+_LOGGER = logging.getLogger(__name__)
+_LOGGER.debug("OpenAI Realtime Assistant module is being imported")
+
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY
@@ -23,8 +27,6 @@ from .const import (
     DEFAULT_CONVERSATION_TIMEOUT,
 )
 from .websocket_client import OpenAIRealtimeClient
-
-_LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -48,9 +50,14 @@ PLATFORMS = ["stt", "tts", "conversation"]
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the OpenAI Realtime Assistant component."""
+    _LOGGER.debug("async_setup called for OpenAI Realtime Assistant")
+    _LOGGER.debug(f"Config keys: {list(config.keys())}")
+    
     if DOMAIN not in config:
+        _LOGGER.debug(f"Domain '{DOMAIN}' not found in config, returning True")
         return True
 
+    _LOGGER.debug(f"Setting up OpenAI Realtime Assistant with domain '{DOMAIN}'")
     conf = config[DOMAIN]
     hass.data[DOMAIN] = {
         "config": conf,
@@ -66,21 +73,25 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     # Register services
     async def handle_start_conversation(call):
         """Handle start conversation service."""
+        _LOGGER.debug(f"Start conversation service called")
         client = hass.data[DOMAIN]["client"]
         await client.start_session()
 
     async def handle_stop_conversation(call):
         """Handle stop conversation service."""
+        _LOGGER.debug(f"Stop conversation service called")
         client = hass.data[DOMAIN]["client"]
         await client.close_session()
 
     async def handle_clear_context(call):
         """Handle clear context service."""
+        _LOGGER.debug(f"Clear context service called")
         client = hass.data[DOMAIN]["client"]
         await client.clear_context()
 
     async def handle_set_system_prompt(call):
         """Handle set system prompt service."""
+        _LOGGER.debug(f"Set system prompt service called with: {call.data}")
         client = hass.data[DOMAIN]["client"]
         prompt = call.data.get("prompt")
         await client.update_system_prompt(prompt)
@@ -90,11 +101,15 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     hass.services.async_register(DOMAIN, "clear_context", handle_clear_context)
     hass.services.async_register(DOMAIN, "set_system_prompt", handle_set_system_prompt)
 
+    _LOGGER.debug("OpenAI Realtime Assistant services registered successfully")
     return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up OpenAI Realtime Assistant from a config entry."""
+    _LOGGER.debug(f"async_setup_entry called for entry_id: {entry.entry_id}")
+    _LOGGER.debug(f"Entry data keys: {list(entry.data.keys())}")
+    
     # Store config entry data
     hass.data.setdefault(DOMAIN, {})
     
@@ -111,9 +126,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     }
     
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    _LOGGER.debug(f"Successfully set up entry {entry.entry_id}, platforms forwarded: {PLATFORMS}")
     return True
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    _LOGGER.debug(f"async_unload_entry called for entry_id: {entry.entry_id}")
+    result = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    _LOGGER.debug(f"Unload result for entry {entry.entry_id}: {result}")
+    return result

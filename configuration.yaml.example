@@ -23,3 +23,9 @@ voice_assistant:
   - platform: esphome
     device_id: your-voice-satellite
     assistant: openai_realtime_assistant
+
+# Enable debug logging to troubleshoot
+logger:
+  default: info
+  logs:
+    custom_components.openai_realtime_assistant: debug
