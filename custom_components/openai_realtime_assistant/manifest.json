@@ -4,10 +4,11 @@
   "version": "1.0.0",
   "documentation": "https://github.com/pogojam/HomeAssistantVoiceAssistant",
   "issue_tracker": "https://github.com/pogojam/HomeAssistantVoiceAssistant/issues",
-  "dependencies": ["conversation", "stt", "tts"],
+  "after_dependencies": ["assist_pipeline", "intent"],
+  "dependencies": ["conversation"],
   "codeowners": ["@pogojam"],
   "requirements": [],
-  "integration_type": "hub",
-  "iot_class": "cloud_push",
+  "integration_type": "service",
+  "iot_class": "cloud_polling",
   "config_flow": true
 }

@@ -1,47 +1,27 @@
 """Conversation platform for OpenAI Realtime Assistant."""
+from __future__ import annotations
+
 import asyncio
 import json
 import logging
 from typing import Any, Literal
 
 from homeassistant.components import conversation
-from homeassistant.components.conversation import ConversationInput, ConversationResult
+from homeassistant.components.conversation import ConversationEntity, ConversationInput, ConversationResult
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_API_KEY, MATCH_ALL
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import intent
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.util import ulid
 
-from .const import DOMAIN, CONF_ENABLE_HOME_CONTROL
+from .const import DOMAIN, CONF_ENABLE_HOME_CONTROL, CONF_MODEL, CONF_VOICE, CONF_TEMPERATURE, CONF_SYSTEM_PROMPT
+from .const import DEFAULT_MODEL, DEFAULT_VOICE, DEFAULT_TEMPERATURE, DEFAULT_SYSTEM_PROMPT
 from .home_assistant_tools import HomeAssistantTools
+from .websocket_client import OpenAIRealtimeClient
 
 _LOGGER = logging.getLogger(__name__)
-
-
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
-    """Set up OpenAI Realtime conversation from YAML."""
-    _LOGGER.debug("Setting up OpenAI Realtime conversation from YAML")
-    
-    # Get the client and config from hass.data
-    if DOMAIN not in hass.data:
-        _LOGGER.error("OpenAI Realtime Assistant not properly initialized")
-        return False
-        
-    client = hass.data[DOMAIN]["client"]
-    agent = OpenAIRealtimeAgent(hass, client, hass.data[DOMAIN]["config"])
-    
-    # Register the agent for YAML config
-    # Create a fake config entry for YAML-based setup
-    from homeassistant.helpers import entity_registry
-    er = entity_registry.async_get(hass)
-    
-    # Store the agent in hass.data for access
-    hass.data[DOMAIN]["agent"] = agent
-    
-    # Register as the default conversation agent
-    conversation.async_set_agent(hass, None, agent)
-    
-    return True
 
 
 async def async_setup_entry(
@@ -50,63 +30,72 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up OpenAI Realtime conversation from a config entry."""
-    entry_data = hass.data[DOMAIN][config_entry.entry_id]
-    client = entry_data["client"]
-    config = entry_data["config"]
-    agent = OpenAIRealtimeAgent(hass, client, config)
-    conversation.async_set_agent(hass, config_entry, agent)
+    api_key = config_entry.data[CONF_API_KEY]
+    
+    # Create the websocket client
+    client = OpenAIRealtimeClient(
+        api_key=api_key,
+        model=config_entry.data.get(CONF_MODEL, DEFAULT_MODEL),
+        voice=config_entry.data.get(CONF_VOICE, DEFAULT_VOICE),
+        temperature=config_entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+        system_prompt=config_entry.data.get(CONF_SYSTEM_PROMPT, DEFAULT_SYSTEM_PROMPT),
+    )
+    
+    # Create and add the conversation entity
+    async_add_entities([OpenAIConversationEntity(config_entry, client)])
 
 
-class OpenAIRealtimeAgent(conversation.AbstractConversationAgent):
-    """OpenAI Realtime conversation agent."""
+class OpenAIConversationEntity(ConversationEntity):
+    """OpenAI conversation entity."""
 
-    def __init__(self, hass: HomeAssistant, client, config: dict):
-        """Initialize the agent."""
-        self.hass = hass
+    _attr_has_entity_name = True
+    _attr_name = None
+
+    def __init__(self, entry: ConfigEntry, client: OpenAIRealtimeClient) -> None:
+        """Initialize the entity."""
         self.client = client
-        self.config = config
-        self._response_complete = asyncio.Event()
-        self._response_text = ""
-        self._conversation_id = None
-        
-        # Initialize Home Assistant tools if enabled
-        if config.get(CONF_ENABLE_HOME_CONTROL, True):
-            self.ha_tools = HomeAssistantTools(hass)
-            self._setup_function_calling()
-        else:
-            self.ha_tools = None
-            
-    def _setup_function_calling(self):
-        """Set up function calling for Home Assistant control."""
-        # Update the client session with available tools
-        tools = self.ha_tools.get_available_tools()
-        asyncio.create_task(self._update_tools(tools))
-        
-    async def _update_tools(self, tools: list[dict]):
-        """Update the session with available tools."""
-        if not self.client.is_connected:
-            await self.client.connect()
-            
-        await self.client.send_message({
-            "type": "session.update",
-            "session": {
-                "tools": tools,
-                "tool_choice": "auto"
-            }
-        })
-        
-    @property
-    def attribution(self) -> dict[str, Any]:
-        """Return the attribution for the agent."""
-        return {
-            "name": "OpenAI Realtime Assistant",
-            "url": "https://openai.com",
+        self.entry = entry
+        self._attr_unique_id = entry.entry_id
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, entry.entry_id)},
+            "name": entry.title,
+            "manufacturer": "OpenAI",
+            "model": "GPT-4o Realtime",
+            "entry_type": "service",
         }
         
+        # Response tracking
+        self._response_text = ""
+        self._response_complete = asyncio.Event()
+        
+        # Initialize Home Assistant tools if enabled
+        self.ha_tools = None
+            
+    async def async_added_to_hass(self) -> None:
+        """When entity is added to hass."""
+        await super().async_added_to_hass()
+        
+        # Initialize Home Assistant tools if enabled
+        if self.entry.data.get(CONF_ENABLE_HOME_CONTROL, True):
+            self.ha_tools = HomeAssistantTools(self.hass)
+            await self._setup_function_calling()
+        
+        # Register this entity as a conversation agent
+        conversation.async_set_agent(self.hass, self.entry, self)
+            
+    async def async_will_remove_from_hass(self) -> None:
+        """When entity will be removed from hass."""
+        # Disconnect the client
+        if self.client.is_connected:
+            await self.client.disconnect()
+            
+        conversation.async_unset_agent(self.hass, self.entry)
+        await super().async_will_remove_from_hass()
+
     @property
     def supported_languages(self) -> list[str] | Literal["*"]:
         """Return a list of supported languages."""
-        return "*"
+        return MATCH_ALL
         
     async def async_process(
         self, user_input: ConversationInput
@@ -117,12 +106,6 @@ class OpenAIRealtimeAgent(conversation.AbstractConversationAgent):
             self._response_text = ""
             self._response_complete.clear()
             
-            # Generate conversation ID if needed
-            if user_input.conversation_id is None:
-                self._conversation_id = ulid.ulid()
-            else:
-                self._conversation_id = user_input.conversation_id
-                
             # Ensure connection
             if not self.client.is_connected:
                 await self.client.connect()
@@ -132,11 +115,6 @@ class OpenAIRealtimeAgent(conversation.AbstractConversationAgent):
             self.client.on("response_done", self._handle_response_done)
             self.client.on("function_call", self._handle_function_call)
             
-            # Add any context if this is a continued conversation
-            if user_input.conversation_id and hasattr(self, "_conversation_history"):
-                for msg in self._conversation_history.get(user_input.conversation_id, []):
-                    await self.client.add_context(msg["role"], msg["content"])
-                    
             # Send the user input
             await self.client.send_text(user_input.text)
             
@@ -152,29 +130,12 @@ class OpenAIRealtimeAgent(conversation.AbstractConversationAgent):
             self.client.off("response_done", self._handle_response_done)
             self.client.off("function_call", self._handle_function_call)
             
-            # Store in conversation history
-            if not hasattr(self, "_conversation_history"):
-                self._conversation_history = {}
-            if self._conversation_id not in self._conversation_history:
-                self._conversation_history[self._conversation_id] = []
-                
-            self._conversation_history[self._conversation_id].extend([
-                {"role": "user", "content": user_input.text},
-                {"role": "assistant", "content": self._response_text}
-            ])
-            
-            # Limit conversation history
-            if len(self._conversation_history[self._conversation_id]) > 20:
-                self._conversation_history[self._conversation_id] = (
-                    self._conversation_history[self._conversation_id][-20:]
-                )
-                
             response = intent.IntentResponse(language=user_input.language)
             response.async_set_speech(self._response_text)
             
             return ConversationResult(
                 response=response,
-                conversation_id=self._conversation_id,
+                conversation_id=user_input.conversation_id or ulid.ulid(),
             )
             
         except Exception as e:
@@ -185,6 +146,22 @@ class OpenAIRealtimeAgent(conversation.AbstractConversationAgent):
                 f"An error occurred: {str(e)}"
             )
             return ConversationResult(response=response)
+            
+    async def _setup_function_calling(self) -> None:
+        """Set up function calling for Home Assistant control."""
+        # Update the client session with available tools
+        tools = self.ha_tools.get_available_tools()
+        
+        if not self.client.is_connected:
+            await self.client.connect()
+            
+        await self.client.send_message({
+            "type": "session.update",
+            "session": {
+                "tools": tools,
+                "tool_choice": "auto"
+            }
+        })
             
     def _handle_text_delta(self, text_delta: str) -> None:
         """Handle text delta from OpenAI."""

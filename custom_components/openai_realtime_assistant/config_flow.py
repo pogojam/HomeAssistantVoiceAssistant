@@ -3,7 +3,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY
 
-from .const import DOMAIN, CONF_MODEL, CONF_VOICE, DEFAULT_MODEL, DEFAULT_VOICE
+from .const import DOMAIN, CONF_MODEL, CONF_VOICE, CONF_ENABLE_HOME_CONTROL, DEFAULT_MODEL, DEFAULT_VOICE
 
 
 class OpenAIRealtimeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -29,6 +29,7 @@ class OpenAIRealtimeConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 vol.Required(CONF_API_KEY): str,
                 vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): str,
                 vol.Optional(CONF_VOICE, default=DEFAULT_VOICE): str,
+                vol.Optional(CONF_ENABLE_HOME_CONTROL, default=True): bool,
             }),
             errors=errors,
         )
